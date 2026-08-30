@@ -67,3 +67,26 @@ Defined in `src/lib/gamification.ts`:
 - Badges: first log, 3/7/30-day streaks, 50 logs, and "Impulse Radar" for
   the first time you honestly tag a purchase as impulse — the goal is
   awareness, not shame
+
+## Auto-import from bank alert emails
+
+There's no way for any app to read SMS content on iOS (Apple blocks it
+entirely, even for automation apps), so capture is built around the
+transaction-alert *emails* most banks also send instead.
+
+- `src/lib/bank-alert-parser.ts` — regex-based extraction of amount,
+  merchant, card last-4, and date from common Indian bank alert formats
+  (HDFC, ICICI, SBI Card, Axis, Kotak, generic UPI), plus a merchant →
+  category guess. Skips anything that isn't a debit/spend (OTPs, credits,
+  refunds).
+- `src/lib/import-alerts.ts` — `importParsedAlerts()`: dedupes on the
+  email's message id, auto-inserts a `Transaction` with `isAutoImported: true`
+  (these skip XP/streak — that system rewards the habit of opening the app,
+  which an email bypasses — but they still count toward totals/badges), and
+  is easy to fix in the UI if the category guess is wrong (transactions grid
+  has an inline category dropdown, marked with an "auto" badge).
+- `scripts/import-alerts.ts` — CLI: `npx tsx scripts/import-alerts.ts <file.json>`
+  runs a batch of already-fetched emails (`[{sourceId, subject, body, receivedAt}]`)
+  through the pipeline. Fetching the emails themselves happens outside the
+  app (e.g. via an assistant with Gmail access) since there's no in-app
+  Gmail OAuth yet.

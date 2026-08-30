@@ -23,6 +23,7 @@ export default async function TransactionsPage({
     categoryId: t.categoryId,
     categoryName: t.category.name,
     categoryIcon: t.category.icon,
+    isAutoImported: t.isAutoImported,
   }));
 
   return (

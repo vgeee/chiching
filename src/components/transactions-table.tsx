@@ -11,7 +11,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { formatINR } from "@/lib/format";
-import { deleteTransaction } from "@/app/actions/transactions";
+import { deleteTransaction, updateTransaction } from "@/app/actions/transactions";
 
 type Row = {
   id: string;
@@ -23,6 +23,7 @@ type Row = {
   categoryId: string;
   categoryName: string;
   categoryIcon: string;
+  isAutoImported: boolean;
 };
 
 type Category = { id: string; name: string; icon: string };
@@ -71,10 +72,39 @@ export function TransactionsTable({
       columnHelper.accessor((r) => `${r.categoryIcon} ${r.categoryName}`, {
         id: "category",
         header: "Category",
+        cell: (info) => (
+          <select
+            defaultValue={info.row.original.categoryId}
+            onChange={(e) =>
+              startTransition(() =>
+                updateTransaction({ id: info.row.original.id, categoryId: e.target.value })
+              )
+            }
+            className="!bg-transparent !border-0 !p-0 text-sm cursor-pointer"
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id} className="bg-neutral-900">
+                {c.icon} {c.name}
+              </option>
+            ))}
+          </select>
+        ),
       }),
       columnHelper.accessor("amount", {
         header: "Amount",
-        cell: (info) => formatINR(info.getValue()),
+        cell: (info) => (
+          <span className="flex items-center gap-1.5">
+            {formatINR(info.getValue())}
+            {info.row.original.isAutoImported && (
+              <span
+                title="Auto-imported from a bank alert"
+                className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25"
+              >
+                auto
+              </span>
+            )}
+          </span>
+        ),
       }),
       columnHelper.accessor("mood", {
         header: "Mood",
@@ -101,7 +131,7 @@ export function TransactionsTable({
         ),
       }),
     ],
-    []
+    [categories]
   );
 
   const table = useReactTable({

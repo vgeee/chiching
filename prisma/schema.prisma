@@ -32,16 +32,19 @@ enum Mood {
 }
 
 model Transaction {
-  id         String   @id @default(cuid())
-  date       DateTime @default(now())
-  amount     Decimal  @db.Decimal(12, 2)
-  note       String?
-  tags       String[] @default([])
-  mood       Mood     @default(PLANNED)
-  category   Category @relation(fields: [categoryId], references: [id])
-  categoryId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String   @id @default(cuid())
+  date           DateTime @default(now())
+  amount         Decimal  @db.Decimal(12, 2)
+  note           String?
+  tags           String[] @default([])
+  mood           Mood     @default(PLANNED)
+  category       Category @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  isAutoImported Boolean  @default(false)
+  sourceRef      String?  @unique // dedup key, e.g. "gmail:<messageId>"
+  merchant       String? // raw merchant/payee text as seen in the alert
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([date])
   @@index([categoryId])
@@ -117,4 +120,14 @@ model Badge {
   earnedAt  DateTime @default(now())
 
   @@map("badges")
+}
+
+// ---------- Auto-import (bank alert emails) ----------
+
+model SyncState {
+  id             String    @id @default("singleton")
+  lastEmailSync  DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@map("sync_state")
 }
