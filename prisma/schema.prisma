@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Expenses ----------
+
+model Category {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  icon         String // emoji, keeps UI dependency-free
+  color        String // tailwind-ish hex used for charts/badges
+  monthlyBudget Decimal?     @db.Decimal(12, 2)
+  isImpulseProne Boolean     @default(false) // shopping/travel/lifestyle style categories
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+
+  @@map("categories")
+}
+
+enum Mood {
+  PLANNED
+  IMPULSE
+  NEED
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  date       DateTime @default(now())
+  amount     Decimal  @db.Decimal(12, 2)
+  note       String?
+  tags       String[] @default([])
+  mood       Mood     @default(PLANNED)
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([date])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+// ---------- Income / CTC ----------
+
+model SalaryEntry {
+  id         String   @id @default(cuid())
+  month      DateTime // first-of-month marker, one entry per month
+  netAmount  Decimal  @db.Decimal(12, 2) // in-hand credited amount
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([month])
+  @@map("salary_entries")
+}
+
+model CtcRecord {
+  id          String   @id @default(cuid())
+  effectiveFrom DateTime
+  annualCtc   Decimal  @db.Decimal(14, 2)
+  employer    String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@map("ctc_records")
+}
+
+// ---------- Investments (irregular SIPs / lumpsums) ----------
+
+enum InvestmentType {
+  SIP
+  LUMPSUM
+  STOCK
+  FD
+  OTHER
+}
+
+model Investment {
+  id         String         @id @default(cuid())
+  date       DateTime       @default(now())
+  amount     Decimal        @db.Decimal(12, 2)
+  type       InvestmentType @default(SIP)
+  instrument String // fund/stock/FD name
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  @@index([date])
+  @@map("investments")
+}
+
+// ---------- Gamification ----------
+
+model GameState {
+  id            String   @id @default("singleton")
+  xp            Int      @default(0)
+  level         Int      @default(1)
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastLogDate   DateTime?
+  updatedAt     DateTime @updatedAt
+
+  @@map("game_state")
+}
+
+model Badge {
+  id        String   @id @default(cuid())
+  code      String   @unique // e.g. "no_spend_day", "week_streak_1"
+  label     String
+  icon      String
+  earnedAt  DateTime @default(now())
+
+  @@map("badges")
+}
