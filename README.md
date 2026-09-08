@@ -43,9 +43,21 @@ sudo -u postgres psql -c "CREATE DATABASE chiching;"
 
 ### Moving to Supabase
 
-Create a free project, grab the connection string (Project Settings →
-Database → Connection string → URI), and put it in `DATABASE_URL`. Then run
+Create a free project and put its **pooled** connection string (Project
+Settings → Database → Connection Pooling, port 6543, add `?pgbouncer=true`)
+in `DATABASE_URL` for the running app — required for serverless (Vercel)
+since the direct-connection hostname is IPv6-only. Then run
 `npx prisma migrate deploy` against it once to create the schema.
+
+**Applying migrations against Supabase**: `prisma migrate deploy` needs a
+connection that supports DDL/session state properly. The transaction-mode
+pooler (port 6543) can hang on it — if that happens, apply new migration
+SQL files directly via the Supabase SQL editor/API instead (or point
+`prisma migrate deploy` at the session pooler on port 5432 or the direct
+connection, from an environment with unrestricted Postgres TCP access).
+The Vercel build here intentionally does **not** run migrations
+automatically for this reason — schema changes are applied out-of-band,
+then just `next build` runs at deploy time.
 
 ## App structure
 
